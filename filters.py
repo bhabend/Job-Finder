@@ -1,37 +1,47 @@
 from datetime import datetime, timedelta
 
-def filter_jobs(jobs, keywords, days, location_keyword):
+def filter_jobs(jobs, keywords=None, days=7, location_keyword=None):
+    """
+    Filters jobs based on keywords, posting date, and location.
+    """
+
     filtered = []
-    allowed_terms = ["remote", "worldwide", "world wide", "global", "work from anywhere", location_keyword.lower()]
-    cutoff_date = datetime.now() - timedelta(days=days)
+    cutoff_date = datetime.utcnow() - timedelta(days=days)
 
     for job in jobs:
-        title = job["title"].lower()
-        desc = job["description"].lower() if job.get("description") else ""
-        loc = job["location"].lower()
-        date_str = job["posted_date"]
-        
-        # Parse date safely
-        try:
-            job_date = datetime.fromisoformat(date_str.replace("Z", ""))
-        except:
-            try:
-                job_date = datetime.strptime(date_str, "%Y-%m-%d")
-            except:
-                job_date = datetime.now()
+        title_match = True
+        date_match = True
+        location_match = True
 
         # Keyword filter
-        if not any(k.lower() in title or k.lower() in desc for k in keywords):
-            continue
+        if keywords:
+            title_match = any(
+                kw.lower() in job["title"].lower()
+                for kw in keywords
+            )
 
         # Date filter
-        if job_date < cutoff_date:
-            continue
+        if "date_posted" in job and job["date_posted"]:
+            try:
+                job_date = datetime.strptime(job["date_posted"], "%Y-%m-%d")
+                date_match = job_date >= cutoff_date
+            except ValueError:
+                pass
 
         # Location filter
-        if not any(term in loc or term in desc for term in allowed_terms):
-            continue
+        if location_keyword:
+            loc = job.get("location", "").lower()
+            loc_keyword = location_keyword.lower()
 
-        filtered.append(job)
+            worldwide_terms = ["worldwide", "anywhere", "remote - global", "global", "multiple locations"]
+
+            # Match if location contains keyword OR is a worldwide term
+            location_match = (
+                loc_keyword in loc
+                or any(term in loc for term in worldwide_terms)
+            )
+
+        if title_match and date_match and location_match:
+            filtered.append(job)
 
     return filtered
