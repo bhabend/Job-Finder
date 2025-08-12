@@ -1,70 +1,50 @@
 import streamlit as st
-from scraper import fetch_remoteok_jobs, fetch_wwr_jobs, fetch_remotive_jobs
+from scraper import scrape_jobs
 from filters import filter_jobs
-import pandas as pd
 
-# Streamlit page setup
-st.set_page_config(page_title="International Remote Job Finder", layout="wide")
+st.set_page_config(page_title="Job Finder", page_icon="💼", layout="wide")
 
-st.title("🌎 International Remote Job Finder")
+st.title("💼 Job Finder - Worldwide & Remote Search")
 
-# Input fields
-keywords_input = st.text_input(
-    "Enter job keywords (comma separated)", 
-    "SEO Manager, Python Developer"
-)
-days_input = st.number_input(
-    "Time period (days)", 
-    min_value=1, 
-    max_value=60, 
-    value=7
-)
-location_keyword = st.text_input(
-    "Location keyword", 
-    "India"
+# Sidebar filters
+st.sidebar.header("Filter Jobs")
+
+keywords = st.sidebar.text_input(
+    "Keywords (comma-separated)", value="Python, AI, Data"
+).split(",")
+
+days = st.sidebar.slider(
+    "Show jobs posted in the last X days", min_value=1, max_value=30, value=7
 )
 
-# Search button
-if st.button("Find Jobs"):
-    st.write("Fetching jobs... Please wait.")
+location_keyword = st.sidebar.text_input(
+    "Location filter (leave blank for worldwide)", value=""
+)
 
-    jobs = []
-    jobs.extend(fetch_remoteok_jobs())
-    jobs.extend(fetch_wwr_jobs())
-    jobs.extend(fetch_remotive_jobs())
+if st.sidebar.button("Search Jobs"):
+    st.info("🔍 Searching for jobs... please wait.")
 
-    # Apply filters
-    filtered = filter_jobs(
-        jobs,
-        keywords=[k.strip() for k in keywords_input.split(",")],
-        days=days_input,
-        location_keyword=location_keyword
-    )
+    try:
+        jobs = scrape_jobs()  # Fetch jobs from your scraper
+        filtered = filter_jobs(jobs, keywords, days, location_keyword)
 
-    if filtered:
-        # Create DataFrame with clickable links
-        df = pd.DataFrame(filtered)
-        df["Job Title"] = df.apply(
-            lambda row: f'<a href="{row["url"]}" target="_blank">{row["title"]}</a>',
-            axis=1
-        )
-        
-        # Select only necessary columns
-        df_display = df[["Job Title", "company", "date_posted", "location"]]
+        if not filtered:
+            st.warning("No jobs found with the given filters.")
+        else:
+            st.success(f"Found {len(filtered)} matching jobs.")
 
-        # Show HTML table
-        st.markdown(
-            df_display.to_html(escape=False, index=False),
-            unsafe_allow_html=True
-        )
+            for job in filtered:
+                with st.container():
+                    st.markdown(
+                        f"### [{job['title']}]({job['link']})"
+                    )
+                    st.write(f"📍 **Location:** {job.get('location', 'N/A')}")
+                    st.write(f"📅 **Date Posted:** {job.get('date_posted', 'N/A')}")
+                    st.write(f"📝 **Company:** {job.get('company', 'N/A')}")
+                    st.markdown("---")
 
-        # Download as CSV
-        csv = df.to_csv(index=False).encode("utf-8")
-        st.download_button(
-            label="📥 Download results as CSV",
-            data=csv,
-            file_name="jobs.csv",
-            mime="text/csv"
-        )
-    else:
-        st.warning("No matching jobs found for the given criteria.")
+    except Exception as e:
+        st.error(f"Error fetching jobs: {e}")
+
+else:
+    st.info("Use the filters in the sidebar and click **Search Jobs** to get started.")
