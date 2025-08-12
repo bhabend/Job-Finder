@@ -29,9 +29,9 @@ if st.button("Find Jobs"):
     st.write("Fetching jobs... Please wait.")
 
     jobs = []
-    jobs.extend(fetch_remoteok_jobs())    # RemoteOK
-    jobs.extend(fetch_wwr_jobs())         # We Work Remotely
-    jobs.extend(fetch_remotive_jobs())    # Remotive API
+    jobs.extend(fetch_remoteok_jobs())
+    jobs.extend(fetch_wwr_jobs())
+    jobs.extend(fetch_remotive_jobs())
 
     # Apply filters
     filtered = filter_jobs(
@@ -41,11 +41,22 @@ if st.button("Find Jobs"):
         location_keyword=location_keyword
     )
 
-    # Show results
     if filtered:
+        # Create DataFrame with clickable links
         df = pd.DataFrame(filtered)
-        st.success(f"Found {len(filtered)} matching jobs!")
-        st.dataframe(df)
+        df["Job Title"] = df.apply(
+            lambda row: f'<a href="{row["url"]}" target="_blank">{row["title"]}</a>',
+            axis=1
+        )
+        
+        # Select only necessary columns
+        df_display = df[["Job Title", "company", "date_posted", "location"]]
+
+        # Show HTML table
+        st.markdown(
+            df_display.to_html(escape=False, index=False),
+            unsafe_allow_html=True
+        )
 
         # Download as CSV
         csv = df.to_csv(index=False).encode("utf-8")
