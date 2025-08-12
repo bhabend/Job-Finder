@@ -28,4 +28,5 @@ def fetch_jobs(keywords, location, days):
             company_tag = tr.find("h3", itemprop="name")
             company = company_tag.get_text(strip=True) if company_tag else "N/A"
             date_tag = tr.find("time")
-            post_date = date_tag["datetime"] if date_tag and "datetime" in d_
+            post_date = date_tag["datetime"] if date_tag and "datetime" in date_tag.attrs else "N/A"
+
