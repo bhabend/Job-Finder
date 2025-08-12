@@ -1,47 +1,30 @@
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
+import feedparser
 
+# Allowed location keywords
+LOCATION_KEYWORDS = ["india", "asia", "apac", "anywhere in the world", "ww", "worldwide", "remote"]
 
-def scrape_remoteok():
-    """Scrapes RemoteOK job listings."""
-    jobs = []
-    url = "https://remoteok.com/remote-jobs"
-    headers = {"User-Agent": "Mozilla/5.0"}
-
+def fetch_remotive():
+    url = "https://remotive.io/api/remote-jobs"
     try:
-        r = requests.get(url, headers=headers, timeout=10)
-        soup = BeautifulSoup(r.text, "html.parser")
-
-        for row in soup.select("tr.job"):
-            title_tag = row.select_one("h2")
-            company_tag = row.select_one("h3")
-            link_tag = row.select_one("a.preventLink")
-            location_tag = row.select_one("div.location")
-
-            if not (title_tag and link_tag):
-                continue
-
+        r = requests.get(url, timeout=10)
+        data = r.json()
+        jobs = []
+        for job in data.get("jobs", []):
             jobs.append({
-                "title": title_tag.get_text(strip=True),
-                "company": company_tag.get_text(strip=True) if company_tag else "N/A",
-                "link": f"https://remoteok.com{link_tag['href']}",
-                "location": location_tag.get_text(strip=True) if location_tag else "Worldwide",
-                "date_posted": "N/A"
+                "title": job["title"],
+                "company": job["company_name"],
+                "location": job["candidate_required_location"],
+                "date": job["publication_date"],
+                "url": job["url"],
+                "source": "Remotive",
+                "description": job["description"]
             })
-
+        return jobs
     except Exception as e:
-        print(f"Error scraping RemoteOK: {e}")
+        print(f"Remotive error: {e}")
+        return []
 
-    return jobs
-
-
-def scrape_weworkremotely():
-    """Scrapes WeWorkRemotely job listings."""
-    jobs = []
-    url = "https://weworkremotely.com/remote-jobs/search?term="
-    headers = {"User-Agent": "Mozilla/5.0"}
-
-    try:
-        r = requests.get(url, headers=headers, timeout=10)
-        soup
+def fetch_remoteok():
