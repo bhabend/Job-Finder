@@ -1,23 +1,35 @@
 import streamlit as st
 from scraper import get_all_jobs
+import pandas as pd
 
-st.set_page_config(page_title="Remote Job Finder", layout="wide")
+st.set_page_config(page_title="Global Remote Job Finder", layout="wide")
 
-st.title("🌎 Remote Job Finder")
-st.write("Find remote jobs filtered by keywords, location, and posted date.")
+st.title("🌍 Global Remote Job Finder")
+st.write("Find remote jobs posted within a specific time period, filtered by keywords & location.")
 
-keywords_input = st.text_input("Enter keywords (comma separated)", "python, seo, data")
-days_input = st.number_input("Posted within the last N days", min_value=1, max_value=60, value=7)
+# User inputs
+keywords_input = st.text_input(
+    "Enter keywords (comma-separated)",
+    placeholder="Example: Python, Data Scientist, Marketing"
+)
+days_input = st.number_input(
+    "Posted within (days)",
+    min_value=1, max_value=60, value=7
+)
 
 if st.button("Search Jobs"):
-    keywords = [k.strip() for k in keywords_input.split(",") if k.strip()]
-    if not keywords:
-        st.error("Please enter at least one keyword.")
+    if not keywords_input.strip():
+        st.warning("Please enter at least one keyword.")
     else:
-        with st.spinner("Fetching jobs..."):
-            jobs = get_all_jobs(keywords, days_input)
-        if not jobs:
-            st.warning("No jobs found for your filters.")
+        keywords = [kw.strip().lower() for kw in keywords_input.split(",") if kw.strip()]
+        jobs = get_all_jobs(keywords, days_input)
+
+        if jobs:
+            df = pd.DataFrame(jobs)
+            st.success(f"Found {len(df)} jobs matching your criteria.")
+            st.dataframe(df, use_container_width=True)
+
+            csv = df.to_csv(index=False).encode("utf-8")
+            st.download_button("📥 Download CSV", data=csv, file_name="remote_jobs.csv", mime="text/csv")
         else:
-            st.success(f"Found {len(jobs)} jobs!")
-            st.dataframe(jobs)
+            st.error("No jobs found matching your criteria.")
