@@ -35,3 +35,25 @@ if st.button("Find Jobs"):
 
     # Apply filters
     filtered = filter_jobs(
+        jobs,
+        keywords=[k.strip() for k in keywords_input.split(",")],
+        days=days_input,
+        location_keyword=location_keyword
+    )
+
+    # Show results
+    if filtered:
+        df = pd.DataFrame(filtered)
+        st.success(f"Found {len(filtered)} matching jobs!")
+        st.dataframe(df)
+
+        # Download as CSV
+        csv = df.to_csv(index=False).encode("utf-8")
+        st.download_button(
+            label="📥 Download results as CSV",
+            data=csv,
+            file_name="jobs.csv",
+            mime="text/csv"
+        )
+    else:
+        st.warning("No matching jobs found for the given criteria.")
