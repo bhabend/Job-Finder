@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from dateutil import parser
 
 # Valid location keywords
@@ -30,4 +30,9 @@ def date_within_range(date_str, days):
     except Exception:
         return False
 
-    return datetime.utcnow() - post_date <= timedelta(days=days)
+    # Make sure post_date is timezone-aware; if naive, assume UTC
+    if post_date.tzinfo is None:
+        post_date = post_date.replace(tzinfo=timezone.utc)
+
+    now = datetime.now(timezone.utc)
+    return (now - post_date) <= timedelta(days=days)
