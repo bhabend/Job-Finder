@@ -1,27 +1,25 @@
 import streamlit as st
 import requests
 from bs4 import BeautifulSoup
-from datetime import datetime
+import pandas as pd
+from dateutil import parser
+from datetime import datetime, timedelta
 
-# -------------------------------
-# Function to fetch jobs from Crossover
-# -------------------------------
-def fetch_jobs():
-    url = "https://www.crossover.com/job-roles"
-    headers = {"User-Agent": "Mozilla/5.0"}
-    response = requests.get(url, headers=headers)
-    
+# Function to scrape jobs
+def scrape_jobs(keywords, location, days_limit):
+    base_url = "https://weworkremotely.com/remote-jobs/search"
+    params = {"term": keywords, "region": location}
+    response = requests.get(base_url, params=params)
+
     if response.status_code != 200:
+        st.error("Failed to fetch jobs. Please try again later.")
         return []
 
-    soup = BeautifulSoup(response.text, "lxml")
+    soup = BeautifulSoup(response.text, "html.parser")
+    job_sections = soup.find_all("section", {"class": "jobs"})
+
     jobs = []
-
-    for card in soup.find_all("a", class_="job-card"):
-        title_tag = card.find("h3")
-        location_tag = card.find("span", class_="location")
-        date_tag = card.find("time")
-
-        title = title_tag.get_text(strip=True) if title_tag else "No title"
-        location = location_tag.get_text(strip=True) if location_tag else "No location"
-        post_date = date_tag["datetime"] if date_tag and date_tag.has_attr("datetime"_
+    for section in job_sections:
+        for li in section.find_all("li", {"class": None}):
+            title_tag = li.find("span", {"class": "title"})
+            company_tag = li.find("span", {"class": "com_
